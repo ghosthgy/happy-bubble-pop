@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>欢乐拍泡泡 - 体感互动游戏</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ocean: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0ea5e9',
+              900: '#0c4a6e',
+              950: '#031a29',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- MediaPipe CDN scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+</head>
+<body class="bg-ocean-950 text-white select-none overflow-hidden w-screen h-screen">
+
+  <!-- Main Game Container -->
+  <div id="gameContainer" class="relative w-full h-full flex items-center justify-center">
+    
+    <!-- Background Ocean Rays and Bubbles Container -->
+    <div class="ocean-rays"></div>
+    <div id="menuBubbles" class="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+      <!-- Bubbles will be dynamically spawned here for background decoration -->
+    </div>
+
+    <!-- Hidden Webcam Video (Mirrored & opacity-blended for AR feel) -->
+    <video id="webcam" class="absolute inset-0 w-full h-full video-mirrored opacity-25 z-0 pointer-events-none hidden" autoplay playsinline></video>
+
+    <!-- Game Rendering Canvas -->
+    <canvas id="gameCanvas" class="absolute inset-0 w-full h-full z-10"></canvas>
+
+    <!-- HUD Overlay (In-game display) -->
+    <div id="hud" class="absolute inset-0 z-20 p-6 flex flex-col justify-between pointer-events-none opacity-0 transition-opacity duration-500">
+      <!-- HUD Top Bar -->
+      <div class="flex justify-between items-center w-full">
+        <!-- Left: Cute Level Badge / Animal Trophy -->
+        <div class="pointer-events-auto">
+          <div id="levelBadge" class="level-badge px-5 py-3 rounded-2xl flex items-center gap-2 border-2 border-white text-white font-game font-bold text-lg select-none">
+            <span>第 1 关</span> <span id="animalAvatar">🐰</span>
+          </div>
+        </div>
+
+        <!-- Center: Star Progress Slots -->
+        <div class="pointer-events-auto flex items-center justify-center">
+          <div class="glass-panel px-6 py-2 rounded-3xl border border-yellow-400/30 flex gap-2 items-center bg-slate-900/60 shadow-[0_0_20px_rgba(250,204,21,0.15)]">
+            <div id="starSlots" class="flex gap-2 text-2xl select-none">
+              <span class="star-slot opacity-25 filter grayscale">⭐</span>
+              <span class="star-slot opacity-25 filter grayscale">⭐</span>
+              <span class="star-slot opacity-25 filter grayscale">⭐</span>
+              <span class="star-slot opacity-25 filter grayscale">⭐</span>
+              <span class="star-slot opacity-25 filter grayscale">⭐</span>
+              <span class="star-slot opacity-25 filter grayscale">⭐</span>
+              <span class="star-slot opacity-25 filter grayscale">⭐</span>
+              <span class="star-slot opacity-25 filter grayscale">⭐</span>
+              <span class="star-slot opacity-25 filter grayscale">⭐</span>
+              <span class="star-slot opacity-25 filter grayscale">⭐</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: BGM Control Button & Tracking Status Indicators -->
+        <div class="flex flex-col gap-2 items-end pointer-events-auto">
+          <!-- BGM Control Button -->
+          <button id="bgmBtn" class="bgm-btn glass-panel px-5 py-2.5 rounded-2xl flex items-center gap-2 border border-cyan-400/20 text-cyan-300 font-game font-semibold text-sm cursor-pointer shadow-lg">
+            <span id="bgmIcon" class="text-lg">🎵</span>
+            <span id="bgmText">音乐：开</span>
+          </button>
+          
+          <!-- Tracking Status Indicators -->
+          <div class="glass-panel px-3 py-1.5 rounded-xl flex gap-3 text-xs border border-white/5">
+            <div class="flex items-center gap-1.5">
+              <span id="leftHandIndicator" class="inline-block w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]"></span>
+              <span class="text-slate-400 text-[10px]">左手</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span id="rightHandIndicator" class="inline-block w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]"></span>
+              <span class="text-slate-400 text-[10px]">右手</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HUD Bottom Bar: Help Hint / Tips -->
+      <div class="flex justify-center w-full">
+        <div class="glass-panel px-6 py-2.5 rounded-full text-base text-cyan-200/90 border border-cyan-500/20 backdrop-blur-md font-game font-semibold animate-pulse">
+          ✨ 挥挥小手，把所有的大泡泡拍碎吧！✨
+        </div>
+      </div>
+    </div>
+
+    <!-- Start Menu Overlay -->
+    <div id="startMenu" class="absolute inset-0 z-30 flex items-center justify-center p-4">
+      <div class="glass-panel max-w-md w-full rounded-[2.5rem] p-10 text-center border-2 border-cyan-400/30 box-glow-cyan flex flex-col gap-8 relative overflow-hidden bg-slate-950/70">
+        <!-- Animated Background in Menu -->
+        <div class="absolute -top-10 -left-10 w-40 h-40 bg-sky-500/25 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-pink-500/20 rounded-full blur-3xl pointer-events-none"></div>
+        
+        <!-- Game Title -->
+        <div class="relative z-10">
+          <h1 class="text-4xl md:text-5xl font-game font-bold text-glow-gold text-yellow-300 tracking-wider animate-bounce select-none">🎈 欢乐拍泡泡 🎈</h1>
+          <p class="text-base text-cyan-300 font-game mt-3 select-none font-semibold">挥挥小手 • 泡泡啪啪破</p>
+        </div>
+
+        <!-- Start Button -->
+        <div class="relative z-10 flex flex-col items-center justify-center">
+          <button id="startBtn" class="w-full bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 hover:from-pink-300 hover:via-purple-300 hover:to-cyan-300 text-white font-game font-bold text-2xl py-6 px-8 rounded-3xl shadow-2xl transition-all cursor-pointer border-2 border-white/60 animate-pulse-bounce">
+            🎈 开始玩游戏 🎈
+          </button>
+        </div>
+        
+        <p class="text-[10px] text-slate-500 relative z-10">
+          * 摄像头权限仅用于本地识别，不会上传任何画面。
+        </p>
+      </div>
+    </div>
+
+    <!-- Loading Screen Overlay -->
+    <div id="loadingScreen" class="absolute inset-0 z-25 bg-ocean-950/90 hidden flex items-center justify-center p-4">
+      <div class="text-center max-w-sm flex flex-col items-center gap-6">
+        <div class="relative w-20 h-20">
+          <div class="absolute inset-0 border-4 border-pink-500/20 rounded-full"></div>
+          <div class="absolute inset-0 border-4 border-t-pink-400 rounded-full animate-spin"></div>
+          <div class="absolute top-4 left-4 w-4 h-4 bg-pink-300/50 rounded-full animate-bounce"></div>
+        </div>
+        <div>
+          <h2 class="text-2xl font-bold font-game tracking-wider text-pink-300">正在开启魔法相机</h2>
+          <p id="loadingStatus" class="text-sm text-sky-200/60 mt-2 font-game">请稍等一下哦...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pause Menu (Esc or Tab key to trigger) -->
+    <div id="pauseMenu" class="absolute inset-0 z-30 hidden flex items-center justify-center p-4">
+      <div class="glass-panel max-w-xs w-full rounded-3xl p-6 text-center border border-white/10 box-glow-cyan flex flex-col gap-4">
+        <h2 class="text-2xl font-game font-bold text-yellow-300 tracking-wider">游戏暂停中</h2>
+        <div class="flex flex-col gap-2">
+          <button id="resumeBtn" class="bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-300 hover:to-purple-300 text-white font-game font-semibold py-3 rounded-xl transition-all shadow-md">
+            继续玩
+          </button>
+          <button id="quitBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-game py-3 rounded-xl border border-white/5 transition-all">
+            回主菜单
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Over Menu Overlay -->
+    <div id="gameOverMenu" class="absolute inset-0 z-30 hidden flex items-center justify-center p-4">
+      <div class="glass-panel max-w-md w-full rounded-[2.5rem] p-8 text-center border border-yellow-400/20 flex flex-col gap-6 bg-slate-950/80 shadow-[0_0_30px_rgba(250,204,21,0.2)]">
+        <div>
+          <h2 id="gameOverTitle" class="text-4xl font-game font-bold text-glow-gold text-yellow-300 animate-bounce">🌟 太棒了！🌟</h2>
+          <p class="text-base text-cyan-300 font-game mt-2 font-semibold">你完成了超级泡泡挑战！</p>
+        </div>
+
+        <div class="bg-slate-900/60 border border-white/5 rounded-3xl p-6 flex flex-col justify-center items-center shadow-inner">
+          <span class="text-sm text-slate-400 font-game">一共拍碎了</span>
+          <span id="finalScore" class="text-5xl font-game font-bold text-pink-400 mt-2 text-glow">0</span>
+          <span class="text-base text-slate-300 font-game mt-2 font-semibold">个大泡泡！🎈</span>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex flex-col gap-3">
+          <button id="restartBtn" class="bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 hover:from-pink-300 hover:via-purple-300 hover:to-cyan-300 text-white font-game font-bold py-4 px-6 rounded-2xl shadow-lg transition-all border border-white/20 text-lg">
+            再玩一次 🎮
+          </button>
+          <button id="backToMenuBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-game py-3 rounded-2xl border border-white/5 transition-all text-sm">
+            返回主菜单 🏠
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Game Scripts -->
+  <script src="js/vision.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
