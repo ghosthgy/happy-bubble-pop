@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  base: './', // 设置为相对路径，确保在 GitHub Pages 子文件夹下能正确加载静态资源
   server: {
     port: 5173,        // 默认开发服务器端口
     strictPort: false, // 如果 5173 端口被占用，自动尝试下一个可用端口（如 5174）
