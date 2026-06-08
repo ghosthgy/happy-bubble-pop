@@ -1,5 +1,6 @@
 # 🎈 欢乐拍泡泡 (Bubble Pop Fun!) - 4岁幼儿体感互动游戏
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Play_Now-orange.svg)](https://ghosthgy.github.io/happy-bubble-pop/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](file:///f:/happy-bubble-pop/LICENSE)
 [![Privacy: 100% Local](https://img.shields.io/badge/Privacy-100%25_Local-brightgreen.svg)](#-隐私声明-privacy-security)
 [![Tech: MediaPipe](https://img.shields.io/badge/Vision-MediaPipe_Hands-red.svg)](https://google.github.io/mediapipe/solutions/hands.html)
@@ -8,6 +9,15 @@
 本项目是一个专为 **4岁左右幼儿** 设计的网页端体感互动游戏。通过调用本地摄像头，孩子们可以直接在屏幕前挥动双手，用可爱的“猫爪”或“魔法棒”拍碎屏幕上不断飘出的七彩大泡泡。
 
 游戏贯彻 **“零挫败感”** 设计理念，无任何限时、惩罚或生命扣减机制，纯粹带给孩子探索与操控的快乐。
+
+---
+
+## 🚀 快速体验 (Quick Start & Demo)
+
+> ## **👉 🚀 [【点击这里立即在线试玩体感游戏】](https://ghosthgy.github.io/happy-bubble-pop/)**
+>
+> [!NOTE]
+> 提示：请确保设备带有摄像头并授予浏览器摄像头权限。如果没有摄像头，游戏会自动降级为鼠标/触摸模式，同样可以游玩！
 
 ---
 
