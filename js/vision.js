@@ -35,11 +35,21 @@ class HandTracker {
       }
     });
 
+    // Detect mobile Edge (EdgA: Edge Android, EdgiOS: Edge iOS, or Edge on any Mobile user agent)
+    const userAgent = navigator.userAgent || "";
+    const isMobileEdge = /EdgA|EdgiOS/i.test(userAgent) || 
+                         (/Edge/i.test(userAgent) && /Mobile/i.test(userAgent));
+
+    if (isMobileEdge) {
+      console.log("检测到移动端 Edge 浏览器，启用 CPU 解析模式 (useCpuInference) 并将模型复杂度设为 0 (Lite) 以保障兼容性与运行流畅度。");
+    }
+
     this.hands.setOptions({
       maxNumHands: 2,
-      modelComplexity: 1, // 0 = Lite (fastest), 1 = Full (recommended for normal play)
+      modelComplexity: isMobileEdge ? 0 : 1, // 0 = Lite (fastest), 1 = Full. Use Lite on mobile CPU to avoid lag
       minDetectionConfidence: 0.6,
-      minTrackingConfidence: 0.5
+      minTrackingConfidence: 0.5,
+      useCpuInference: isMobileEdge
     });
 
     // 2. Handle Hand Landmark Results
